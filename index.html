@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Vote Visualizer</title>
+    <style type="text/css">
+        :root{
+            font-family : "Helvetica", sans;
+        }
+        .voteSquare {
+            width      : 12px;
+            height     : 12px;
+            min-width  : 8px;
+            min-height : 8px;
+            border     : 1px solid white;
+        }
+        .Labour                  { background : red;      }
+        .LabourCoop              { background : red;      }
+        .Conservative            { background : blue;     }
+        .LiberalDemocrat         { background : orange;   }
+        .PlaidCymru              { background : darkred;  }
+        .Independent             { background : grey;     }
+        .ScottishNationalParty   { background : yellow;   }
+        .DemocraticUnionistParty { background : darkblue; }
+        .GreenParty              { background : green;    }
+        .SinnFein                { background : darkgreen;}
+
+        #VoteDetails {
+            height : 5vh;
+        }
+
+        .visualizer {
+            width          : 140px;
+            display        : flex;
+            flex-direction : column;
+            justify-content: center;
+            padding-right  : 2px;
+            /*justify-content: center;*/
+            /*align-items    : center;*/
+        }
+        .ayes {     
+            display        : flex; 
+            flex-direction : row;
+            flex-wrap      : wrap-reverse;
+            align-content  : flex-start;
+            /*background     : lightgreen;*/
+            padding-top    : 20px;
+        }
+        .noes {     
+            display        : flex; 
+            flex-direction : row;
+            flex-wrap      : wrap;
+            align-content  : flex-start;
+            padding-bottom : 20px;
+            /*background     : orange;  */
+        }
+        .abstentions {
+            display : none;
+        }
+        .titlebar{  
+            height      : 10vh; 
+            text-align  : center;
+        }
+        #title{
+            margin  : 50% auto 50%;
+        }
+        .totals { 
+            font-weight      : bold;
+            text-align       : center;
+        }
+        .speaker {
+            padding-top      : 30px;
+            color            : grey;
+            font-weight      : bold;
+            font-style       : italic;
+            font-size-adjust : 0.5;
+        }
+        .page {
+            display : flex;
+            flex-direction: row;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="VoteDetails">
+        <input  id="date"          type="text"/>
+        <button id="lookup_btn"  >Lookup</button>
+        <select id="Voteselection" type="select" ></select>
+        <!-- <button id="display_btn" >Visualize</button> -->
+        <button id="displayMore_btn" >+ Viz</button>
+    </div>
+    <div class="page"></div>
+    <script type="text/javascript" src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function(){
+            $("#lookup_btn").on("click",function(){
+                $.getJSON("http://eldaddp.azurewebsites.net/commonsdivisions.json?date="+$("#date").val(), function(metadata){
+                    console.log("Loading list");
+                    var data = metadata.result.items;
+                    // debugger;
+                    $("#Voteselection").html("");
+                    $(data).each(function(index,votedata){
+                        // debugger;
+                        var option = $("<option/>");
+                        option.attr({
+                            'value' : votedata.uin
+                        }).text(votedata.title);
+                        $("#Voteselection").append(option);
+                    });
+                });
+            });
+            $("#display_btn").on("click",function(){
+                // debugger;
+                var uin = $( "#Voteselection option:selected" ).val();
+                loadData("http://eldaddp.azurewebsites.net/commonsdivisions.json?uin="+uin);
+            });
+            $("#displayMore_btn").on("click",function(){
+                var newid = ($(".visualizer").length|0)+1;
+                var fragment = $('<div id="visualizer_'+newid+'" class="visualizer"> <div class="totals" id="total_ayes"></div> <div class="ayes voteholder"></div> <div class="titlebar"> <div id="title"></div> </div> <div class="noes voteholder"></div> <div class="totals" id="total_noes"></div> <div class="abstentions voteholder"> <div class="totals" id="total_abst"></div> </div>  <div class="speaker"><div id="bercow"></div></div> </div> ');
+                $(".page").append(fragment);
+                var uin = $( "#Voteselection option:selected" ).val();
+                loadData("http://eldaddp.azurewebsites.net/commonsdivisions.json?uin="+uin, "#visualizer_"+newid );
+            });
+            $("#date"      ).val( new Date().toISOString().split('T')[0] );
+            $("#lookup_btn").trigger("click");
+            // loadData("http://eldaddp.azurewebsites.net/commonsdivisions.json?uin=CD:2019-03-29:664");
+            function loadData(uri, te){ 
+                var toelement = te||"#visualizer";
+                console.log("Sending to "+toelement);
+                $.getJSON(uri, function(metadata){
+                    // debugger;
+                    var data = metadata.result.items[0];
+                    $(toelement+" .voteholder").html("");
+                    // debugger;
+                    data.vote.sort(function(a,b){ return (a.memberParty>b.memberParty)?1:(a.memberParty<b.memberParty)?-1:0; });
+
+                    $("#date"      ).val( data.date._value            );
+
+                    $(toelement+" #title"     ).html( data.title                  );
+                    $(toelement+" #total_ayes").html( data.AyesCount[    0]._value);
+                    $(toelement+" #total_noes").html( data.Noesvotecount[0]._value);
+                    $(toelement+" #total_abst").html( data.AbstainCount[ 0]._value);
+
+                    function partySanitize(strin){ return strin.replace(/[\s\(\)\-]/g, ""); }
+
+                    $(data.vote).each(function(index,votedata){
+                        // debugger;
+                        var classList = "voteSquare "+partySanitize(votedata.memberParty)
+                        var thiscube  = $("<div/>",{
+                            class : classList,
+                            title : votedata.memberPrinted._value,
+                        });
+                        var divtoaddto = (votedata.type=="http://data.parliament.uk/schema/parl#AyeVote")?"ayes":
+                                         (votedata.type=="http://data.parliament.uk/schema/parl#NoVote" )?"noes": "abstentions";
+                        console.log(divtoaddto);
+                        $(toelement+" ."+divtoaddto).append(thiscube);
+                    });
+
+                    if (parseInt(data.AyesCount[    0]._value) > parseInt(data.Noesvotecount[0]._value)){
+                        $(toelement+" #bercow").html("The ayes have it, the ayes have it!");
+                    } else {
+                        $(toelement+" #bercow").html("The noes have it, the noes have it!");
+                    }
+
+                    reformat();
+                }); // end JSON
+            }//loadData
+            function reformat(){
+                console.log("refit");
+                var largestAye = 0;
+                $(".ayes").each(function(i,el){ if ($(el).height()>largestAye )largestAye=$(el).height(); });
+                $(".ayes").css("min-height",largestAye+"px");
+                console.log("..",largestAye);
+                var largestNoe = 0;
+                $(".noes").each(function(i,el){ if ($(el).height()>largestNoe )largestNoe=$(el).height(); });
+                $(".noes").css("min-height",largestNoe+"px");
+                console.log(largestNoe,"....done");
+            }
+        });
+    </script>
+</body>
+</html>
