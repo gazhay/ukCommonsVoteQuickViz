@@ -13,16 +13,23 @@
             min-height : 8px;
             border     : 1px solid white;
         }
-        .Labour                  { background : red;      }
-        .LabourCoop              { background : red;      }
-        .Conservative            { background : blue;     }
-        .LiberalDemocrat         { background : orange;   }
-        .PlaidCymru              { background : darkred;  }
-        .Independent             { background : grey;     }
-        .ScottishNationalParty   { background : yellow;   }
-        .DemocraticUnionistParty { background : darkblue; }
-        .GreenParty              { background : green;    }
-        .SinnFein                { background : darkgreen;}
+        .Labour                                              { background : red;       }
+        .LabourCoop                                          { background : red;       }
+        .Conservative                                        { background : blue;      }
+        .LiberalDemocrat                                     { background : orange;    }
+        .PlaidCymru                                          { background : darkred;   }
+        .Independent                                         { background : grey;      }
+        .ScottishNationalParty                               { background : yellow;    }
+        .DemocraticUnionistParty, .DemocraticUnionist        { background : darkblue;  }
+        .GreenParty, .Green                                  { background : green;     }
+        .SinnFein                                            { background : darkgreen; }
+        .UlsterUnionists                                     { background : lightblue; }
+        .Other, .Speaker                                     { background : black;     }
+        .SocialDemocraticAndLabourParty, 
+           .SocialDemocraticLabourParty                      { background : lightgreen;}
+        .Alliance                                            { background : gold;      }
+        .FirstDeputyChairmanofWaysandMeans                   { background : darkgrey;  }
+        .Respect                                             { background : darkgreen; }
 
         #VoteDetails {
             height : 5vh;
@@ -44,6 +51,7 @@
             align-content  : flex-start;
             /*background     : lightgreen;*/
             padding-top    : 20px;
+            z-index        : 5;
         }
         .noes {     
             display        : flex; 
@@ -51,6 +59,7 @@
             flex-wrap      : wrap;
             align-content  : flex-start;
             padding-bottom : 20px;
+            z-index        : 5px;
             /*background     : orange;  */
         }
         .abstentions {
@@ -59,6 +68,7 @@
         .titlebar{  
             height      : 10vh; 
             text-align  : center;
+            z-index     : 0;
         }
         #title{
             margin  : 50% auto 50%;
@@ -141,7 +151,7 @@
                     $(toelement+" #total_noes").html( data.Noesvotecount[0]._value);
                     $(toelement+" #total_abst").html( data.AbstainCount[ 0]._value);
 
-                    function partySanitize(strin){ return strin.replace(/[\s\(\)\-]/g, ""); }
+                    function partySanitize(strin){ return strin.replace(/[\s\(\)\-\&]/g, ""); }
 
                     $(data.vote).each(function(index,votedata){
                         // debugger;
