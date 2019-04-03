@@ -89,6 +89,9 @@
             flex-direction: row;
             justify-content: center;
         }
+        svg{
+            visibility: hidden;
+        }
     </style>
 </head>
 <body>
@@ -98,11 +101,47 @@
         <select id="Voteselection" type="select" ></select>
         <!-- <button id="display_btn" >Visualize</button> -->
         <button id="displayMore_btn" >+ Viz</button>
+        <button id="convertSVG">SVG</button>
     </div>
     <div class="page"></div>
+    <svg viewbox="0 0 2100 2970"></svg>
     <script type="text/javascript" src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
     <script type="text/javascript">
+        function svgConversion(relem){
+            console.log("Convert ",relem);
+            var svg = $("svg");
+            relem.children().each(function(){
+                var t   = $(this);
+                // debugger;
+                var tfc = t.css("background-color");
+                var r   = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                // debugger;
+                r.setAttribute("x"          , t.offset().left );
+                r.setAttribute("y"          , t.offset().top  );
+                r.setAttribute("width"      , t.width()       );
+                r.setAttribute("height"     , t.height()      );
+                r.setAttribute("style"      , "fill:"+tfc     );
+                r.setAttribute("data-title" , t.title         );
+                svg.append(r);
+            });
+        }
+        function downloadSVG(){
+            var svgData           = $("svg")[0].outerHTML;
+            var svgBlob           = new Blob([svgData], {type:"image/svg+xml;charset=utf-8"});
+            var svgUrl            = URL.createObjectURL(svgBlob);
+            var downloadLink      = document.createElement("a");
+            downloadLink.href     = svgUrl;
+            downloadLink.download = "voteVisualizer.svg";
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+        }
         $(document).ready(function(){
+            $("#convertSVG").on("click",function(){
+                svgConversion($(".ayes"));
+                svgConversion($(".noes"));
+                downloadSVG();
+            });
             $("#lookup_btn").on("click",function(){
                 $.getJSON("http://eldaddp.azurewebsites.net/commonsdivisions.json?date="+$("#date").val(), function(metadata){
                     console.log("Loading list");
@@ -131,8 +170,7 @@
                 var uin = $( "#Voteselection option:selected" ).val();
                 loadData("http://eldaddp.azurewebsites.net/commonsdivisions.json?uin="+uin, "#visualizer_"+newid );
             });
-            $("#date"      ).val( new Date().toISOString().split('T')[0] );
-            $("#lookup_btn").trigger("click");
+            $("#date"      ).val( new Date().toISOString().split('T')[0] ).on("keyup", function(e){ if ( e.which == 13 ) {$("#lookup_btn").trigger("click"); } }); $("#lookup_btn").trigger("click");
             // loadData("http://eldaddp.azurewebsites.net/commonsdivisions.json?uin=CD:2019-03-29:664");
             function loadData(uri, te){ 
                 var toelement = te||"#visualizer";
@@ -158,7 +196,11 @@
                         var classList = "voteSquare "+partySanitize(votedata.memberParty)
                         var thiscube  = $("<div/>",{
                             class : classList,
-                            title : votedata.memberPrinted._value,
+                            title : votedata.memberPrinted._value.replace(/\'/g,""),
+                        }).on("mouseover",function(){
+                            $(".voteSquare[title='"+votedata.memberPrinted._value+"']").css("border","1px solid black");
+                        }).on("mouseleave", function(){
+                            $(".voteSquare[title='"+votedata.memberPrinted._value+"']").css("border","1px solid white");
                         });
                         var divtoaddto = (votedata.type=="http://data.parliament.uk/schema/parl#AyeVote")?"ayes":
                                          (votedata.type=="http://data.parliament.uk/schema/parl#NoVote" )?"noes": "abstentions";
